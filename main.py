@@ -4,6 +4,7 @@ from src.scraper import WebScraper
 from selenium.webdriver.common.by import By
 import yaml
 import sys
+import hashlib
 
 if __name__ == "__main__":
     config = None
@@ -13,6 +14,7 @@ if __name__ == "__main__":
         except yaml.YAMLError as exc:
             sys.exit(1, exc)
 
+    md5 = hashlib.md5()
     ws = WebScraper(config["PATH"])
     ws.get_page(config["URL"])
 
@@ -34,7 +36,9 @@ if __name__ == "__main__":
     assert pdf_url is not None
 
     resp = requests.get(pdf_url)
-    with open("data/raw/tmp.pdf", "wb") as f:
+    md5.update(resp.content)
+    hex = md5.hexdigest()
+    with open(f"data/raw/{hex}.pdf", "wb") as f:
         f.write(resp.content)
         print("PDF successfuly stored")
 
