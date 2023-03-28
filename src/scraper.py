@@ -2,12 +2,13 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
+from retry import retry
 
 class WebScraper:
     def __init__(self, driver_path):
         try:
             self.driver = webdriver.Chrome(executable_path=driver_path)
-            self.wait = WebDriverWait(self.driver, 10)
+            self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
         except WebDriverException as e:
             print("Error initializing web driver: ", e)
 
@@ -35,11 +36,13 @@ class WebScraper:
         except NoSuchElementException as e:
             print(f"Elements {locator}={value} not found: ", e)
 
+    @retry(WebDriverException, delay=3, tries=5)
     def click_element(self, element):
         try:
             element.click()
         except WebDriverException as e:
             print("Error clicking element: ", e)
+            raise # This invokes retry function decorator
 
     def wait_to_become_clickable(self, locator, value):
         try:

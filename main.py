@@ -14,7 +14,6 @@ if __name__ == "__main__":
         except yaml.YAMLError as exc:
             sys.exit(1, exc)
 
-    md5 = hashlib.md5()
     ws = WebScraper(config["PATH"])
     ws.get_page(config["URL"])
 
@@ -22,8 +21,6 @@ if __name__ == "__main__":
     ws.click_element(stats[0])
 
     datavolley = ws.find_element(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
-    ws.wait_to_become_clickable(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
-    time.sleep(3)
     ws.click_element(datavolley)
 
     iframes = ws.find_elements(By.TAG_NAME, 'iframe')
@@ -36,10 +33,11 @@ if __name__ == "__main__":
     assert pdf_url is not None
 
     resp = requests.get(pdf_url)
+    md5 = hashlib.md5()
     md5.update(resp.content)
     hex = md5.hexdigest()
     with open(f"data/raw/{hex}.pdf", "wb") as f:
         f.write(resp.content)
         print("PDF successfuly stored")
-
+        
     ws.quit()
