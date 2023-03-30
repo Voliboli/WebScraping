@@ -15,11 +15,22 @@ if __name__ == "__main__":
             sys.exit(1, exc)
 
     ws = WebScraper(config["PATH"])
+    ws.driver.maximize_window()
     ws.get_page(config["URL"])
 
     stats = ws.find_elements(By.XPATH, '// *[contains(@onclick, "MatchStatistics")]')
-    ws.click_element(stats[0])
+    print(len(stats))
+    filtered_stats = []
+    filtered_elements = set()
+    for stat in stats:
+        attr = stat.get_attribute("onclick")
+        if config["MATCH_LINK_STRING"] in attr and attr not in filtered_elements:
+            filtered_elements.add(attr)
+            filtered_stats.append(stat)
+    
+    ws.click_element(filtered_stats[1])
 
+    ws.driver.execute_script("window.scrollTo(0, 600)") # 1080 size of the page (it's like you cant click the element you don't actually see when bot controller browser opens)
     datavolley = ws.find_element(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
     ws.click_element(datavolley)
 
@@ -38,6 +49,8 @@ if __name__ == "__main__":
     hex = md5.hexdigest()
     with open(f"data/raw/{hex}.pdf", "wb") as f:
         f.write(resp.content)
-        print("PDF successfuly stored")
+        print(f"{hex}.pdf successfuly stored")
+
+    ws.get_page(config["URL"])
         
     ws.quit()

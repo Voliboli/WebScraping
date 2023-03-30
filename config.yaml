@@ -1,3 +1,4 @@
 PATH: "chromedriver_linux64/chromedriver"
 URL: "https://ozs-web.dataproject.com/CompetitionMatches.aspx?ID=88&PID=131"
 MATCH_PDF_STRING: "Match_Datavolley"
+MATCH_LINK_STRING: "MatchStatistics"
