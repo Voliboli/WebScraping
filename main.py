@@ -6,6 +6,30 @@ import yaml
 import sys
 import hashlib
 
+def retrieve_all_stats():
+    filtered_stats = []
+    filtered_elements = set()
+    stats = ws.find_elements(By.XPATH, '// *[contains(@onclick, "MatchStatistics")]')
+    for stat in stats:
+        try:
+            attr = stat.get_attribute("onclick")
+            if config["MATCH_LINK_STRING"] in attr and attr not in filtered_elements:
+                filtered_elements.add(attr)
+                filtered_stats.append(stat)
+        except Exception as e:
+            print(f"Failed getting statistics, because of: {e}")
+    
+    return filtered_stats, filtered_elements 
+
+def get_next_stat(already_retrieved):
+    stats, elements = retrieve_all_stats()
+    for stat, el in zip(stats, elements):
+        if el not in already_retrieved:
+            return stat, el
+        
+    return None, None
+    
+
 if __name__ == "__main__":
     config = None
     with open("config.yaml", "r") as c:
@@ -18,39 +42,39 @@ if __name__ == "__main__":
     ws.driver.maximize_window()
     ws.get_page(config["URL"])
 
-    stats = ws.find_elements(By.XPATH, '// *[contains(@onclick, "MatchStatistics")]')
-    print(len(stats))
-    filtered_stats = []
-    filtered_elements = set()
-    for stat in stats:
-        attr = stat.get_attribute("onclick")
-        if config["MATCH_LINK_STRING"] in attr and attr not in filtered_elements:
-            filtered_elements.add(attr)
-            filtered_stats.append(stat)
-    
-    ws.click_element(filtered_stats[1])
+    n_stats = len(retrieve_all_stats()[0])
+    already_retrieved = []
+    for n in range(n_stats):
+        # Scroll down (12 games per screen)
+        x = int(n / 12)
+        if (x != 0):
+            ws.driver.execute_script(f"window.scrollTo(0, {x*1000 + 1350})")
 
-    ws.driver.execute_script("window.scrollTo(0, 600)") # 1080 size of the page (it's like you cant click the element you don't actually see when bot controller browser opens)
-    datavolley = ws.find_element(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
-    ws.click_element(datavolley)
+        # I believe everytime the page is loaded, the elements have different IDs that's why I cannot fetch all statistics only once! 
+        stat, el = get_next_stat(already_retrieved)
+        already_retrieved.append(el)
+        ws.click_element(stat)
 
-    iframes = ws.find_elements(By.TAG_NAME, 'iframe')
-    pdf_url = None
-    for i in iframes:
-        s = i.get_attribute("src")
-        print(s)
-        if config["MATCH_PDF_STRING"] in s:
-            pdf_url = s
-    assert pdf_url is not None
+        ws.driver.execute_script("window.scrollTo(0, 600)") # 1080 size of the page (it's like you cant click the element you don't actually see when bot controller browser opens)
+        datavolley = ws.find_element(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
+        ws.click_element(datavolley)
 
-    resp = requests.get(pdf_url)
-    md5 = hashlib.md5()
-    md5.update(resp.content)
-    hex = md5.hexdigest()
-    with open(f"data/raw/{hex}.pdf", "wb") as f:
-        f.write(resp.content)
-        print(f"{hex}.pdf successfuly stored")
+        iframes = ws.find_elements(By.TAG_NAME, 'iframe')
+        pdf_url = None
+        for i in iframes:
+            s = i.get_attribute("src")
+            if config["MATCH_PDF_STRING"] in s:
+                pdf_url = s
+        assert pdf_url is not None
 
-    ws.get_page(config["URL"])
+        resp = requests.get(pdf_url)
+        md5 = hashlib.md5()
+        md5.update(resp.content)
+        hex = md5.hexdigest()
+        with open(f"data/raw/{hex}.pdf", "wb") as f:
+            f.write(resp.content)
+            print(f"{hex}.pdf successfuly stored")
+
+        ws.get_page(config["URL"])
         
     ws.quit()
