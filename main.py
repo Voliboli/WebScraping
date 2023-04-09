@@ -40,8 +40,14 @@ if __name__ == "__main__":
 
     ws = WebScraper(config["PATH"])
     ws.driver.maximize_window()
-    ws.get_page(config["URL"])
 
+    # Check robots.txt
+    robots = requests.get(config["ROBOTS_URL"])
+    content = robots.text
+    if content != 'User-Agent: *\r\nDisallow:':
+        sys.exit("Web Crawlers disallowed on this webpage. Closing session...")
+
+    ws.get_page(config["URL"])
     n_stats = len(retrieve_all_stats()[0])
     already_retrieved = []
     for n in range(n_stats):
