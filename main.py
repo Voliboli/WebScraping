@@ -1,3 +1,4 @@
+import os
 import time
 import requests
 from src.scraper import WebScraper
@@ -48,6 +49,7 @@ if __name__ == "__main__":
         sys.exit("Web Crawlers disallowed on this webpage. Closing session...")
 
     ws.get_page(config["URL"])
+
     n_stats = len(retrieve_all_stats()[0])
     already_retrieved = []
     for n in range(n_stats):
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         if (x != 0):
             ws.driver.execute_script(f"window.scrollTo(0, {x*1000 + 1350})")
 
-        # I believe everytime the page is loaded, the elements have different IDs that's why I cannot fetch all statistics only once! 
+        # I believe everytime the page is loaded, the elements have different IDs that's why I cannot fetch all statistics only once! - StaleElementReferenceException
         stat, el = get_next_stat(already_retrieved)
         already_retrieved.append(el)
         ws.click_element(stat)
@@ -77,9 +79,12 @@ if __name__ == "__main__":
         md5 = hashlib.md5()
         md5.update(resp.content)
         hex = md5.hexdigest()
-        with open(f"data/raw/{hex}.pdf", "wb") as f:
-            f.write(resp.content)
-            print(f"{hex}.pdf successfuly stored")
+        file_path = f"data/raw/{hex}.pdf"
+        # Make sure the file doesn't already exist - hash/name based on the context of the file 
+        if not os.path.exists(file_path):
+            with open(file_path, "wb") as f:
+                f.write(resp.content)
+                print(f"{hex}.pdf successfuly stored")
 
         ws.get_page(config["URL"])
         
