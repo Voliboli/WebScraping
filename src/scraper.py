@@ -10,7 +10,7 @@ class WebScraper:
     def __init__(self, driver_path):
         try:
             options = webdriver.ChromeOptions()
-            options.add_argument('--headless')
+            options.add_argument('--headless=new')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
             self.driver = webdriver.Chrome(executable_path=driver_path, options=options)
