@@ -1,3 +1,4 @@
+import os
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -7,7 +8,11 @@ from retry import retry
 class WebScraper:
     def __init__(self, driver_path):
         try:
-            self.driver = webdriver.Chrome(executable_path=driver_path)
+            options = webdriver.ChromeOptions()
+            options.add_argument('--headless')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            self.driver = webdriver.Chrome(executable_path=driver_path, options=options)
             self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
         except WebDriverException as e:
             print("Error initializing web driver: ", e)
