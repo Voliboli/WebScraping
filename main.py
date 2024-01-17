@@ -39,8 +39,12 @@ if __name__ == "__main__":
         except yaml.YAMLError as exc:
             sys.exit(1, exc)
 
+    print("Starting up Voliboli WebScraper!")
+    
     ws = WebScraper(config["PATH"])
     ws.driver.maximize_window()
+
+    print("Successfully initialized ChromeDriver!")
 
     # Check robots.txt
     robots = requests.get(config["ROBOTS_URL"])
@@ -52,12 +56,13 @@ if __name__ == "__main__":
 
     n_stats = len(retrieve_all_stats()[0])
     already_retrieved = []
+    print("Starting processing the files")
     for n in range(n_stats):
+        print(f"Processing stats #{n}")
         # Scroll down (12 games per screen)
         x = int(n / 12)
         if (x != 0):
             ws.driver.execute_script(f"window.scrollTo(0, {x*1000 + 1350})")
-
         # I believe everytime the page is loaded, the elements have different IDs that's why I cannot fetch all statistics only once! - StaleElementReferenceException
         stat, el = get_next_stat(already_retrieved)
         already_retrieved.append(el)
