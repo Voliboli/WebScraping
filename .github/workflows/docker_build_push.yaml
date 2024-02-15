@@ -1,0 +1,72 @@
+name: Voliboli package build and store
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  buildandpush:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout repository code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+#    - name: Set up CNB
+#      uses: buildpacks/github-actions/setup-pack@v5.5.2
+
+    - name: Login to Harbor
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ secrets.HARBOR_URL  }}
+        username: ${{ secrets.HARBOR_USERNAME  }}
+        password: ${{ secrets.HARBOR_PASSWORD }}
+
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          scraper:
+            - 'scraper/**'
+          process:
+            - 'processing/**'
+          api:
+            - 'api/**'
+
+    - name: Get Next Version - Semantic Versioning
+      id: semver
+      uses: ietf-tools/semver-action@v1
+      with:
+        token: ${{ github.token }}
+        branch: main
+        majorList: MAJOR, BREAKING CHANGE
+        minorList: MINOR
+        patchList: PATCH
+        noVersionBumpBehavior: patch
+        noNewCommitBehavior: current
+  
+    - name: Generate release changelog
+      id: changelog
+      uses: heinrichreimer/action-github-changelog-generator@v2.3
+      with:
+        token: ${{ secrets.REPO_ACCESS_TOKEN }} 
+
+    # Release is required if you want to further bump versions on the next releases
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }} 
+      with:
+        tag_name: ${{ steps.semver.outputs.next }}
+        release_name: ${{ steps.semver.outputs.next }}
+        body: ${{ steps.changelog.outputs.changelog }}
+      
+    - name: Build and Push WebScraper to Harbor
+      if: steps.filter.outputs.scraper == 'true'
+      run: |
+        docker build . -t ${{ secrets.HARBOR_URL  }}/voliboli/webscraper:${{ steps.semver.outputs.next }}
+        # pack build ${{ secrets.HARBOR_URL  }}/voliboli/webscraper:${{ steps.semver.outputs.next }} --path . --buildpack paketo-buildpacks/python --builder paketobuildpacks/builder:base
+        docker push ${{ secrets.HARBOR_URL  }}/voliboli/webscraper:${{ steps.semver.outputs.next }}
