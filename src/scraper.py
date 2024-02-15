@@ -13,7 +13,7 @@ class WebScraper:
             options.add_argument('--headless=new')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
-            self.driver = webdriver.Chrome(executable_path=driver_path, options=options)
+            self.driver = webdriver.Chrome(options=options)
             self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
         except WebDriverException as e:
             print("Error initializing web driver: ", e)
