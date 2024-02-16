@@ -41,10 +41,8 @@ ENV PROJECT_DIR /usr/src/voliboli
 
 WORKDIR ${PROJECT_DIR}
 
-COPY Pipfile .
-COPY Pipfile.lock .
-
-RUN pipenv install
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 COPY . .
 
