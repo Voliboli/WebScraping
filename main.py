@@ -1,9 +1,13 @@
 import os
+import io
 import sys
 import time
+import json
 import requests
 from src.scraper import WebScraper
 from selenium.webdriver.common.by import By
+from minio import Minio
+from minio.error import S3Error
 import yaml
 import sys
 import hashlib
@@ -33,6 +37,23 @@ def get_next_stat(already_retrieved):
     
 
 if __name__ == "__main__":
+    ACCESS_KEY = os.environ["MINIO_ACCESS_KEY"]
+    SECRET_KEY = os.environ["MINIO_SECRET_KEY"]
+
+    minio_client = Minio(
+        "minio.minio.svc:9000",
+        access_key=ACCESS_KEY,
+        secret_key=SECRET_KEY,
+        secure=False # NOTE: ATM both services running on a local cluster
+    )
+
+    # Make the bucket if it doesn't exist.
+    bucket_name = "voliboli"
+    if not minio_client.bucket_exists(bucket_name):
+        minio_client.make_bucket(bucket_name)
+        print("Created bucket", bucket_name)
+    else:
+        print("Bucket", bucket_name, "already exists")
     duration = 3600
     failure = False
     try:
@@ -93,12 +114,26 @@ if __name__ == "__main__":
             md5 = hashlib.md5()
             md5.update(resp.content)
             hex = md5.hexdigest()
+            # Convert JSON data to bytes
+            #json_bytes = json.dumps(, indent=2).encode('utf-8')
+            # Create a BytesIO object
+            json_buffer = io.BytesIO(resp.content)
+            # Construct object name with prefix and current date-time
             file_path = f"data/raw/{hex}.pdf"
             # Make sure the file doesn't already exist - hash/name based on the context of the file 
             if not os.path.exists(file_path):
                 with open(file_path, "wb") as f:
                     f.write(resp.content)
                     print(f"{hex}.pdf successfuly stored")
+
+            # Upload JSON data to Minio
+            minio_client.fput_object(
+                bucket_name,
+                f"{hex}.pdf",
+                file_path,
+            )
+
+            print(f"JSON object successfully stored in Minio: {hex}.pdf")
 
             ws.get_page(config["URL"])
             elapsed_time = time.time() - start_time
