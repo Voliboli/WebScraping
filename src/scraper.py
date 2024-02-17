@@ -1,4 +1,5 @@
 import os
+from time import time
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -21,12 +22,14 @@ class WebScraper:
     def get_page(self, url):
         try:
             self.driver.get(url)
+            time.sleep(1)
         except WebDriverException as e:
             print("Error getting page: ", e)
 
     def find_element(self, locator, value):
         try:
             element = self.wait.until(EC.presence_of_element_located((locator, value)))
+            time.sleep(1)
             return element
         except TimeoutException as e:
             print(f"Timed out waiting for element {locator}={value}: ", e)
@@ -36,6 +39,7 @@ class WebScraper:
     def find_elements(self, locator, value):
         try:
             elements = self.wait.until(EC.presence_of_all_elements_located((locator, value)))
+            time.sleep(1)
             return elements
         except TimeoutException as e:
             print(f"Timed out waiting for element {locator}={value}: ", e)
@@ -46,6 +50,7 @@ class WebScraper:
     def click_element(self, element):
         try:
             element.click()
+            time.sleep(1)
         except WebDriverException as e:
             print("Error clicking element: ", e)
             raise # This invokes retry function decorator
@@ -53,12 +58,14 @@ class WebScraper:
     def wait_to_become_clickable(self, locator, value):
         try:
             self.wait.until(EC.element_to_be_clickable((locator, value)))
+            time.sleep(1)
         except TimeoutException as e:
             print("Timed out waiting for element to become clickable: ", e)
 
     def wait_for_url_change(self, old_url):
         try:
             self.wait.until(EC.url_changes(old_url))
+            time.sleep(1)
         except TimeoutException as e:
             print("Timed out waiting for URL change: ", e)
 

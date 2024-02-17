@@ -34,7 +34,7 @@ jobs:
         minorList: MINOR
         patchList: PATCH
         noVersionBumpBehavior: patch
-        noNewCommitBehavior: current
+        noNewCommitBehavior: warn
   
     - name: Generate release changelog
       id: changelog

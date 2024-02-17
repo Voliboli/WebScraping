@@ -88,59 +88,62 @@ if __name__ == "__main__":
         already_retrieved = []
         print("Starting processing the files")
         for n in range(n_stats):
-            print(f"Processing stats #{n}")
-            # Scroll down (12 games per screen)
-            x = int(n / 12)
-            if (x != 0):
-                ws.driver.execute_script(f"window.scrollTo(0, {x*1000 + 1350})")
-            # I believe everytime the page is loaded, the elements have different IDs that's why I cannot fetch all statistics only once! - StaleElementReferenceException
-            stat, el = get_next_stat(already_retrieved)
-            already_retrieved.append(el)
-            ws.click_element(stat)
+            try:
+                print(f"Processing stats #{n}")
+                # Scroll down (12 games per screen)
+                x = int(n / 12)
+                if (x != 0):
+                    ws.driver.execute_script(f"window.scrollTo(0, {x*1000 + 1350})")
+                # I believe everytime the page is loaded, the elements have different IDs that's why I cannot fetch all statistics only once! - StaleElementReferenceException
+                stat, el = get_next_stat(already_retrieved)
+                already_retrieved.append(el)
+                ws.click_element(stat)
 
-            ws.driver.execute_script("window.scrollTo(0, 600)") # 1080 size of the page (it's like you cant click the element you don't actually see when bot controller browser opens)
-            datavolley = ws.find_element(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
-            ws.click_element(datavolley)
+                ws.driver.execute_script("window.scrollTo(0, 600)") # 1080 size of the page (it's like you cant click the element you don't actually see when bot controller browser opens)
+                datavolley = ws.find_element(By.XPATH, "//a[@class='rtsLink']//span[@class='rtsTxt'][text()='DataVolley']")
+                ws.click_element(datavolley)
 
-            iframes = ws.find_elements(By.TAG_NAME, 'iframe')
-            pdf_url = None
-            for i in iframes:
-                s = i.get_attribute("src")
-                if config["MATCH_PDF_STRING"] in s:
-                    pdf_url = s
-            assert pdf_url is not None
+                iframes = ws.find_elements(By.TAG_NAME, 'iframe')
+                pdf_url = None
+                for i in iframes:
+                    s = i.get_attribute("src")
+                    if config["MATCH_PDF_STRING"] in s:
+                        pdf_url = s
+                assert pdf_url is not None
 
-            resp = requests.get(pdf_url)
-            md5 = hashlib.md5()
-            md5.update(resp.content)
-            hex = md5.hexdigest()
-            # Convert JSON data to bytes
-            #json_bytes = json.dumps(, indent=2).encode('utf-8')
-            # Create a BytesIO object
-            json_buffer = io.BytesIO(resp.content)
-            # Construct object name with prefix and current date-time
-            file_path = f"data/raw/{hex}.pdf"
-            # Make sure the file doesn't already exist - hash/name based on the context of the file 
-            if not os.path.exists(file_path):
-                with open(file_path, "wb") as f:
-                    f.write(resp.content)
-                    print(f"{hex}.pdf successfuly stored")
+                resp = requests.get(pdf_url)
+                md5 = hashlib.md5()
+                md5.update(resp.content)
+                hex = md5.hexdigest()
+                # Convert JSON data to bytes
+                #json_bytes = json.dumps(, indent=2).encode('utf-8')
+                # Create a BytesIO object
+                json_buffer = io.BytesIO(resp.content)
+                # Construct object name with prefix and current date-time
+                file_path = f"data/raw/{hex}.pdf"
+                # Make sure the file doesn't already exist - hash/name based on the context of the file 
+                if not os.path.exists(file_path):
+                    with open(file_path, "wb") as f:
+                        f.write(resp.content)
+                        print(f"{hex}.pdf successfuly stored")
 
-            # Upload JSON data to Minio
-            minio_client.fput_object(
-                bucket_name,
-                f"{hex}.pdf",
-                file_path,
-            )
+                # Upload JSON data to Minio
+                minio_client.fput_object(
+                    bucket_name,
+                    f"{hex}.pdf",
+                    file_path,
+                )
 
-            print(f"JSON object successfully stored in Minio: {hex}.pdf")
+                print(f"JSON object successfully stored in Minio: {hex}.pdf")
 
-            ws.get_page(config["URL"])
-            elapsed_time = time.time() - start_time
+                ws.get_page(config["URL"])
+                elapsed_time = time.time() - start_time
 
-            # Check if the elapsed time is greater than the desired duration
-            if elapsed_time > duration:
-                raise TimeoutError("Script ran for more than 60 minutes")
+                # Check if the elapsed time is greater than the desired duration
+                if elapsed_time > duration:
+                    raise TimeoutError("Script ran for more than 60 minutes")
+            except Exception as e:
+                print(f"Failed to process stat #{n} due to an Error: {e}")
     
     except Exception as e:
         print(f"Error: {e}")
