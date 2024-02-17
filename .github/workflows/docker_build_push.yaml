@@ -27,6 +27,9 @@ jobs:
     runs-on: ${{ needs.check-runner.outputs.runner-label }}
 
     steps:
+    - name: Runner
+      run: echo "Building on runner ${{ needs.check-runner.outputs.runner-label }}"
+
     - name: checkout repository code
       uses: actions/checkout@v3
       with:
